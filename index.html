@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detetive Ultra Hardcore</title>
+<style>
+body { font-family: 'Arial', sans-serif; background:#111; color:#eee; margin:0; padding:0;}
+header { text-align:center; background:#222; padding:15px;}
+main { display:flex; flex-wrap:wrap; justify-content:space-around; padding:20px;}
+.panel { background:#1a1a1a; padding:15px; margin:10px; border-radius:10px; flex:1 1 300px; max-width:450px;}
+h2{margin-top:0;}
+button { margin:5px 0; padding:5px 10px; border:none; border-radius:5px; cursor:pointer;}
+button:hover { background:#333;}
+select { margin:5px 0; padding:5px; width:100%; border-radius:5px;}
+.clue-item{ cursor:pointer; color:#6ec1e4;}
+</style>
+</head>
+<body>
+
+<header>
+<h1>Mansão do Mistério Ultra Hardcore</h1>
+<p>Investigue o assassinato combinando pistas, decifrando enigmas e interrogando suspeitos.</p>
+</header>
+
+<main>
+<div class="panel">
+<h2>Mapa da Mansão</h2>
+<p>Clique para explorar salas:</p>
+<button onclick="exploreRoom('Biblioteca')">Biblioteca</button>
+<button onclick="exploreRoom('Sala de Jantar')">Sala de Jantar</button>
+<button onclick="exploreRoom('Escritório')">Escritório</button>
+<button onclick="exploreRoom('Jardim')">Jardim</button>
+<button onclick="exploreRoom('Passagem Secreta')">Passagem Secreta</button>
+<p id="roomDescription"></p>
+</div>
+
+<div class="panel">
+<h2>Suspeitos</h2>
+<button onclick="interrogate('Assistente')">Assistente</button>
+<button onclick="interrogate('Bibliotecária')">Bibliotecária</button>
+<button onclick="interrogate('Rival acadêmico')">Rival acadêmico</button>
+<button onclick="interrogate('Mordomo')">Mordomo</button>
+<button onclick="interrogate('Visitante inesperado')">Visitante inesperado</button>
+<p id="dialogue"></p>
+</div>
+
+<div class="panel">
+<h2>Inventário de Pistas</h2>
+<ul id="clueList"></ul>
+<p>Clique em pistas para detalhes ou combine duas pistas para desbloquear informações.</p>
+</div>
+
+<div class="panel">
+<h2>Acusar</h2>
+<select id="suspectSelect">
+<option value="">Suspeito</option>
+<option value="Assistente">Assistente</option>
+<option value="Bibliotecária">Bibliotecária</option>
+<option value="Rival acadêmico">Rival acadêmico</option>
+<option value="Mordomo">Mordomo</option>
+<option value="Visitante inesperado">Visitante inesperado</option>
+</select>
+<select id="methodSelect">
+<option value="">Método</option>
+<option value="Envenenamento na caneta">Envenenamento na caneta</option>
+<option value="Xícara de chá">Xícara de chá</option>
+<option value="Faca escondida">Faca escondida</option>
+<option value="Queda acidental">Queda acidental</option>
+</select>
+<select id="locationSelect">
+<option value="">Local</option>
+<option value="Biblioteca">Biblioteca</option>
+<option value="Sala de Jantar">Sala de Jantar</option>
+<option value="Escritório">Escritório</option>
+<option value="Jardim">Jardim</option>
+<option value="Passagem Secreta">Passagem Secreta</option>
+</select>
+<select id="timeSelect">
+<option value="">Hora aproximada</option>
+<option value="22:00-22:30">22:00-22:30</option>
+<option value="22:30-23:00">22:30-23:00</option>
+<option value="23:00-23:30">23:00-23:30</option>
+<option value="23:30-00:00">23:30-00:00</option>
+</select>
+<button onclick="submitAccusation()">Acusar</button>
+<p id="result"></p>
+</div>
+</main>
+
+<script>
+let clues=[];
+let roomsExplored={};
+let combinedClues=[];
+
+const roomData={
+"Biblioteca":{desc:"Livros antigos, mesa de revisão, atmosfera silenciosa.",clues:["Caneta com tinta suspeita","Manuscrito antigo"]},
+"Sala de Jantar":{desc:"Sala limpa, uma xícara sobre a mesa.",clues:["Xícara de chá intocada"]},
+"Escritório":{desc:"Papelada espalhada, gavetas trancadas.",clues:["Diário do Assistente","Carta misteriosa"]},
+"Jardim":{desc:"Pegadas estranhas indicam entrada secreta.",clues:["Pegadas suspeitas"]},
+"Passagem Secreta":{desc:"Corredor escuro que leva a salas escondidas.",clues:["Objeto codificado"]}
+};
+
+const clueDetails={
+"Caneta com tinta suspeita":"Tinta contém vestígios de veneno.",
+"Manuscrito antigo":"Segredos antigos da mansão, necessário para decifrar veneno.",
+"Xícara de chá intocada":"Parece suspeita mas não foi usada.",
+"Diário do Assistente":"Revela interesse do assistente pelo cargo.",
+"Carta misteriosa":"Bilhete sugerindo presença de visitante inesperado.",
+"Pegadas suspeitas":"Mostram entrada secreta.",
+"Objeto codificado":"Mensagem cifrada, só decifrável combinando pistas."
+};
+
+const dialogues={
+"Assistente":{base:"Assistente nervoso, revisando papéis.",clues:{"Diário do Assistente":"Confessa desejo de assumir cargo.","Manuscrito antigo":"Sabe do segredo antigo."}},
+"Bibliotecária":{base:"Organizando livros, nega tocar na vítima.",clues:{"Manuscrito antigo":"Conhece documentos mas não tem interesse."}},
+"Rival acadêmico":{base:"Diz que estava em evento público.",clues:{"Carta misteriosa":"Surgem dúvidas sobre saída dele."}},
+"Mordomo":{base:"Nos corredores, discreto.",clues:{"Pegadas suspeitas":"Sabe de passagens secretas."}},
+"Visitante inesperado":{base:"Nega tocar em nada, apenas observava.",clues:{"Carta misteriosa":"Bilhete sugere presença dele."}}
+};
+
+function exploreRoom(room){
+  if(!roomsExplored[room]) roomsExplored[room]=true;
+  document.getElementById('roomDescription').textContent=roomData[room].desc;
+  roomData[room].clues.forEach(clue=>addClue(clue));
+}
+
+function addClue(clue){
+  if(!clues.includes(clue)){
+    clues.push(clue);
+    const li=document.createElement('li');
+    li.textContent=clue;
+    li.classList.add('clue-item');
+    li.onclick=()=>combineOrDetail(clue);
+    document.getElementById('clueList').appendChild(li);
+  }
+}
+
+function combineOrDetail(clue){
+  if(combinedClues.length<1){
+    combinedClues.push(clue);
+    alert("Pista selecionada para combinação: "+clue);
+  }else{
+    let first=combinedClues.pop();
+    // Combinando pistas chave
+    if((first==="Caneta com tinta suspeita" && clue==="Manuscrito antigo")||(first==="Manuscrito antigo" && clue==="Caneta com tinta suspeita")){
+      alert("Combinação revelada: O assassino usou veneno na caneta! Biblioteca foi o local do crime e hora aproximada 22:30-23:00.");
+      clues.push("Revelação Final");
+      const li=document.createElement('li');
+      li.textContent="Revelação Final";
+      li.classList.add('clue-item');
+      li.onclick=()=>alert("Agora você tem as informações corretas para acusar!");
+      document.getElementById('clueList').appendChild(li);
+    }else{
+      alert("Combinação não revelou nada útil.");
+    }
+  }
+}
+
+function interrogate(suspect){
+  let text=dialogues[suspect].base;
+  clues.forEach(clue=>{
+    if(dialogues[suspect].clues[clue]) text+="\n\n"+dialogues[suspect].clues[clue];
+  });
+  document.getElementById('dialogue').textContent=text;
+}
+
+function submitAccusation(){
+  const suspect=document.getElementById('suspectSelect').value;
+  const method=document.getElementById('methodSelect').value;
+  const location=document.getElementById('locationSelect').value;
+  const time=document.getElementById('timeSelect').value;
+  if(suspect==="Assistente" && method==="Envenenamento na caneta" && location==="Biblioteca" && time==="22:30-23:00"){
+    document.getElementById('result').textContent="Parabéns! Você solucionou o caso!";
+  }else{
+    document.getElementById('result').text
